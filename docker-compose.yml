@@ -1,0 +1,44 @@
+version: "3.8"
+
+services:
+  hazelcast-node:
+    image: hazelcast/hazelcast:5.5
+    ports:
+      - "5701:5701"
+
+  config-server:
+    build: .
+    command: python config_server.py
+    ports:
+      - "8888:8888"
+    depends_on:
+      - hazelcast-node
+
+  logging-service:
+    build: .
+    command: python logging_service.py
+    deploy:
+      replicas: 3
+    depends_on:
+      - config-server
+
+  counter-service:
+    build: .
+    command: python counter_service.py
+    volumes:
+      - counter_data:/data
+    depends_on:
+      - config-server
+      - hazelcast-node
+
+  facade-service:
+    build: .
+    command: python facade_service.py
+    ports:
+      - "8088:8080"
+    depends_on:
+      - config-server
+      - hazelcast-node
+
+volumes:
+  counter_data:
